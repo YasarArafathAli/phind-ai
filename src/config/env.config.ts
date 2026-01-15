@@ -5,4 +5,10 @@ export default () => ({
     model: process.env.OPENAI_MODEL,
     embeddingModel: process.env.OPENAI_EMBEDDING_MODEL,
   },
+  // Google OAuth config for document ingestion
+  google: {
+    clientId: process.env.GOOGLE_CLIENT_ID,
+    clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+    redirectUri: process.env.GOOGLE_REDIRECT_URI,
+  },
 });
