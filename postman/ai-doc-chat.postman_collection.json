@@ -1,7 +1,7 @@
 {
   "info": {
-    "name": "Document Ingestion API",
-    "description": "API collection for Google Docs ingestion pipeline",
+    "name": "AI Document Chat API",
+    "description": "Complete API collection for the AI Document Chat backend",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
@@ -13,8 +13,116 @@
   ],
   "item": [
     {
-      "name": "Auth",
-      "description": "Authentication endpoints for Google OAuth",
+      "name": "Health",
+      "description": "Health check endpoints (Google Cloud best practices)",
+      "item": [
+        {
+          "name": "Basic Health Check",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/health",
+              "host": ["{{baseUrl}}"],
+              "path": ["health"]
+            },
+            "description": "Basic health check - returns OK if server is running"
+          }
+        },
+        {
+          "name": "Liveness Probe",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/health/live",
+              "host": ["{{baseUrl}}"],
+              "path": ["health", "live"]
+            },
+            "description": "Kubernetes liveness probe - checks if app is alive"
+          }
+        },
+        {
+          "name": "Readiness Probe",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/health/ready",
+              "host": ["{{baseUrl}}"],
+              "path": ["health", "ready"]
+            },
+            "description": "Kubernetes readiness probe - checks if app can serve traffic"
+          }
+        },
+        {
+          "name": "Detailed Status",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/health/status",
+              "host": ["{{baseUrl}}"],
+              "path": ["health", "status"]
+            },
+            "description": "Detailed service status including memory, uptime, and document count"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Chat",
+      "description": "OpenAI chat endpoints",
+      "item": [
+        {
+          "name": "Send Chat Message",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"message\": \"Hello, how are you?\",\n  \"messages\": []\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/chat",
+              "host": ["{{baseUrl}}"],
+              "path": ["chat"]
+            },
+            "description": "Send a message to OpenAI and get a response"
+          }
+        },
+        {
+          "name": "Chat with History",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"message\": \"What did I just ask you?\",\n  \"messages\": [\n    {\"role\": \"user\", \"content\": \"Hello, how are you?\"},\n    {\"role\": \"assistant\", \"content\": \"I'm doing well, thank you for asking! How can I help you today?\"}\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/chat",
+              "host": ["{{baseUrl}}"],
+              "path": ["chat"]
+            },
+            "description": "Send a message with conversation history for context"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Ingestion - Auth",
+      "description": "Google OAuth authentication endpoints",
       "item": [
         {
           "name": "1. Get OAuth URL",
@@ -27,8 +135,7 @@
               "path": ["ingestion", "auth", "url"]
             },
             "description": "Get the Google OAuth authorization URL. Open this URL in browser to authenticate."
-          },
-          "response": []
+          }
         },
         {
           "name": "2. OAuth Callback",
@@ -47,9 +154,8 @@
                 }
               ]
             },
-            "description": "Exchange the OAuth authorization code for access tokens. Replace YOUR_AUTH_CODE with the code from Google redirect."
-          },
-          "response": []
+            "description": "Exchange the OAuth authorization code for access tokens"
+          }
         },
         {
           "name": "3. Check Auth Status",
@@ -61,14 +167,13 @@
               "host": ["{{baseUrl}}"],
               "path": ["ingestion", "auth", "status"]
             },
-            "description": "Check if the server is authenticated with Google."
-          },
-          "response": []
+            "description": "Check if the server is authenticated with Google"
+          }
         }
       ]
     },
     {
-      "name": "Documents",
+      "name": "Ingestion - Documents",
       "description": "Document listing and ingestion endpoints",
       "item": [
         {
@@ -81,9 +186,8 @@
               "host": ["{{baseUrl}}"],
               "path": ["ingestion", "documents", "available"]
             },
-            "description": "List all Google Docs available in the user's Drive. Requires authentication first."
-          },
-          "response": []
+            "description": "List all Google Docs available in the user's Drive. Requires authentication."
+          }
         },
         {
           "name": "Ingest Single Document",
@@ -102,9 +206,8 @@
                 }
               ]
             },
-            "description": "Ingest a single document by its Google Doc ID."
-          },
-          "response": []
+            "description": "Ingest a single document by its Google Doc ID"
+          }
         },
         {
           "name": "Ingest Batch (Selected Documents)",
@@ -125,9 +228,8 @@
               "host": ["{{baseUrl}}"],
               "path": ["ingestion", "documents", "batch"]
             },
-            "description": "Ingest multiple selected documents. Replace document IDs with actual IDs from the available documents list."
-          },
-          "response": []
+            "description": "Ingest multiple selected documents"
+          }
         },
         {
           "name": "Get All Ingested Documents",
@@ -139,9 +241,8 @@
               "host": ["{{baseUrl}}"],
               "path": ["ingestion", "documents"]
             },
-            "description": "Get a list of all documents that have been ingested."
-          },
-          "response": []
+            "description": "Get a list of all documents that have been ingested"
+          }
         },
         {
           "name": "Get Single Ingested Document",
@@ -160,9 +261,8 @@
                 }
               ]
             },
-            "description": "Get full details of a single ingested document including all content blocks."
-          },
-          "response": []
+            "description": "Get full details of a single ingested document including all content blocks"
+          }
         }
       ]
     }
