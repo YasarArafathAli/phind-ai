@@ -1,0 +1,170 @@
+{
+  "info": {
+    "name": "Document Ingestion API",
+    "description": "API collection for Google Docs ingestion pipeline",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3001",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Auth",
+      "description": "Authentication endpoints for Google OAuth",
+      "item": [
+        {
+          "name": "1. Get OAuth URL",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/ingestion/auth/url",
+              "host": ["{{baseUrl}}"],
+              "path": ["ingestion", "auth", "url"]
+            },
+            "description": "Get the Google OAuth authorization URL. Open this URL in browser to authenticate."
+          },
+          "response": []
+        },
+        {
+          "name": "2. OAuth Callback",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/ingestion/auth/callback?code=YOUR_AUTH_CODE",
+              "host": ["{{baseUrl}}"],
+              "path": ["ingestion", "auth", "callback"],
+              "query": [
+                {
+                  "key": "code",
+                  "value": "YOUR_AUTH_CODE",
+                  "description": "Replace with the authorization code from Google OAuth redirect"
+                }
+              ]
+            },
+            "description": "Exchange the OAuth authorization code for access tokens. Replace YOUR_AUTH_CODE with the code from Google redirect."
+          },
+          "response": []
+        },
+        {
+          "name": "3. Check Auth Status",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/ingestion/auth/status",
+              "host": ["{{baseUrl}}"],
+              "path": ["ingestion", "auth", "status"]
+            },
+            "description": "Check if the server is authenticated with Google."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Documents",
+      "description": "Document listing and ingestion endpoints",
+      "item": [
+        {
+          "name": "List Available Documents",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/ingestion/documents/available",
+              "host": ["{{baseUrl}}"],
+              "path": ["ingestion", "documents", "available"]
+            },
+            "description": "List all Google Docs available in the user's Drive. Requires authentication first."
+          },
+          "response": []
+        },
+        {
+          "name": "Ingest Single Document",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/ingestion/documents/:documentId/ingest",
+              "host": ["{{baseUrl}}"],
+              "path": ["ingestion", "documents", ":documentId", "ingest"],
+              "variable": [
+                {
+                  "key": "documentId",
+                  "value": "YOUR_DOCUMENT_ID",
+                  "description": "Google Doc ID from the available documents list"
+                }
+              ]
+            },
+            "description": "Ingest a single document by its Google Doc ID."
+          },
+          "response": []
+        },
+        {
+          "name": "Ingest Batch (Selected Documents)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"documentIds\": [\n    \"document_id_1\",\n    \"document_id_2\"\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/ingestion/documents/batch",
+              "host": ["{{baseUrl}}"],
+              "path": ["ingestion", "documents", "batch"]
+            },
+            "description": "Ingest multiple selected documents. Replace document IDs with actual IDs from the available documents list."
+          },
+          "response": []
+        },
+        {
+          "name": "Get All Ingested Documents",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/ingestion/documents",
+              "host": ["{{baseUrl}}"],
+              "path": ["ingestion", "documents"]
+            },
+            "description": "Get a list of all documents that have been ingested."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Single Ingested Document",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/ingestion/documents/:documentId",
+              "host": ["{{baseUrl}}"],
+              "path": ["ingestion", "documents", ":documentId"],
+              "variable": [
+                {
+                  "key": "documentId",
+                  "value": "google_docs_YOUR_DOCUMENT_ID",
+                  "description": "Full document ID (includes google_docs_ prefix)"
+                }
+              ]
+            },
+            "description": "Get full details of a single ingested document including all content blocks."
+          },
+          "response": []
+        }
+      ]
+    }
+  ]
+}
