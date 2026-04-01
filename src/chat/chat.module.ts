@@ -1,11 +1,12 @@
-// Chat module - handles RAG queries and responses
-// We'll implement this in Phase 3
-
 import { Module } from '@nestjs/common';
+import { ChatController } from './chat.controller';
+import { ChatService } from './chat.service';
+import { RagModule } from '../rag/rag.module';
+import { VectorStoreModule } from '../vector-store/vector-store.module';
 
 @Module({
-  imports: [],
-  controllers: [],
-  providers: [],
+  imports: [RagModule, VectorStoreModule],
+  controllers: [ChatController],
+  providers: [ChatService],
 })
 export class ChatModule {}
