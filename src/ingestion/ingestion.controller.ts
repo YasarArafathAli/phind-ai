@@ -2,6 +2,7 @@ import { Controller, Get, Post, Body, Param, Query, Res } from '@nestjs/common';
 import type { Response } from 'express';
 import { GoogleDocsConnector } from './google-docs.connector';
 import { IngestionService } from './ingestion.service';
+import { ProcessingService } from '../rag/processing.service';
 
 // DTO for batch ingestion
 interface IngestBatchDto {
@@ -16,6 +17,7 @@ export class IngestionController {
   constructor(
     private readonly connector: GoogleDocsConnector,
     private readonly ingestionService: IngestionService,
+    private readonly processingService: ProcessingService,
   ) {}
 
   /**
@@ -122,5 +124,71 @@ export class IngestionController {
       return { error: 'Document not found' };
     }
     return doc;
+  }
+
+  /**
+   * Process a document for RAG: chunk, embed, and store in vector store
+   * POST /ingestion/documents/:id/process
+   */
+  @Post('documents/:id/process')
+  async processDocument(@Param('id') id: string) {
+    const doc = this.ingestionService.getDocument(id);
+    if (!doc) {
+      return { error: 'Document not found' };
+    }
+
+    try {
+      const result = await this.processingService.processDocument(doc);
+      return {
+        documentId: doc.id,
+        title: doc.title,
+        chunksCreated: result.chunks.length,
+        embeddingsGenerated: result.embeddedChunks.length,
+        success: result.success,
+      };
+    } catch (error) {
+      return {
+        error: error instanceof Error ? error.message : 'Failed to process document',
+      };
+    }
+  }
+
+  /**
+   * Process all ingested documents for RAG
+   * POST /ingestion/documents/process-all
+   */
+  @Post('documents/process-all')
+  async processAllDocuments() {
+    const documents = this.ingestionService.getDocuments();
+
+    if (documents.length === 0) {
+      return {
+        message: 'No documents to process',
+        processed: [],
+        totalChunks: 0,
+      };
+    }
+
+    try {
+      const result = await this.processingService.processDocuments(documents);
+      return {
+        message: `Processed ${documents.length} documents`,
+        processed: result.processed,
+        totalChunks: result.totalChunks,
+      };
+    } catch (error) {
+      return {
+        error: error instanceof Error ? error.message : 'Failed to process documents',
+      };
+    }
+  }
+
+  /**
+   * Get RAG processing statistics
+   * GET /ingestion/rag/stats
+   */
+  @Get('rag/stats')
+  getRagStats() {
+    return this.processingService.getStats();
   }
 }

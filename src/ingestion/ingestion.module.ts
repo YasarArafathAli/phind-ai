@@ -4,8 +4,10 @@ import { GoogleDocsNormalizer } from './google-docs.normalizer';
 import { DocumentStore } from './document.store';
 import { IngestionService } from './ingestion.service';
 import { IngestionController } from './ingestion.controller';
+import { RagModule } from '../rag/rag.module';
 
 @Module({
+  imports: [RagModule],
   controllers: [IngestionController],
   providers: [
     GoogleDocsConnector,
@@ -13,6 +15,6 @@ import { IngestionController } from './ingestion.controller';
     DocumentStore,
     IngestionService,
   ],
-  exports: [IngestionService, DocumentStore],
+  exports: [IngestionService, DocumentStore, GoogleDocsConnector],
 })
 export class IngestionModule {}
