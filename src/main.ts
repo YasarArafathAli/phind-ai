@@ -22,6 +22,7 @@ async function bootstrap() {
     .setDescription('API documentation for AI Document Chat Backend service. This API provides endpoints for interacting with OpenAI chat completions.')
     .setVersion('1.0')
     .addTag('API', 'Main API endpoints')
+    .addTag('Chat', 'RAG and document-grounded chat')
     .build();
 
   const document = SwaggerModule.createDocument(app, config);

@@ -1,7 +1,7 @@
 {
   "info": {
     "name": "AI Document Chat API",
-    "description": "Complete API collection for the AI Document Chat backend",
+    "description": "Backend for AI Document Chat (NestJS).\n\n**Typical flow:** OAuth -> ingest documents -> POST .../process (index chunks) -> POST /chat/rag.\n\n**Swagger:** GET {{baseUrl}}/api\n\n**Frontend contract:** see repo `docs/API_FRONTEND_NOTES.md`.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
@@ -9,24 +9,30 @@
       "key": "baseUrl",
       "value": "http://localhost:3001",
       "type": "string"
+    },
+    {
+      "key": "googleDocId",
+      "value": "YOUR_GOOGLE_FILE_ID",
+      "type": "string"
+    },
+    {
+      "key": "canonicalDocumentId",
+      "value": "google_docs_YOUR_GOOGLE_FILE_ID",
+      "type": "string"
     }
   ],
   "item": [
     {
       "name": "Health",
-      "description": "Health check endpoints (Google Cloud best practices)",
+      "description": "Health checks. GET /health may return extra fields depending on which handler is registered.",
       "item": [
         {
           "name": "Basic Health Check",
           "request": {
             "method": "GET",
             "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/health",
-              "host": ["{{baseUrl}}"],
-              "path": ["health"]
-            },
-            "description": "Basic health check - returns OK if server is running"
+            "url": "{{baseUrl}}/health",
+            "description": "Returns at least status + ISO timestamp."
           }
         },
         {
@@ -34,12 +40,8 @@
           "request": {
             "method": "GET",
             "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/health/live",
-              "host": ["{{baseUrl}}"],
-              "path": ["health", "live"]
-            },
-            "description": "Kubernetes liveness probe - checks if app is alive"
+            "url": "{{baseUrl}}/health/live",
+            "description": "Kubernetes liveness."
           }
         },
         {
@@ -47,12 +49,8 @@
           "request": {
             "method": "GET",
             "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/health/ready",
-              "host": ["{{baseUrl}}"],
-              "path": ["health", "ready"]
-            },
-            "description": "Kubernetes readiness probe - checks if app can serve traffic"
+            "url": "{{baseUrl}}/health/ready",
+            "description": "Readiness; may be degraded if Google is not authenticated."
           }
         },
         {
@@ -60,22 +58,18 @@
           "request": {
             "method": "GET",
             "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/health/status",
-              "host": ["{{baseUrl}}"],
-              "path": ["health", "status"]
-            },
-            "description": "Detailed service status including memory, uptime, and document count"
+            "url": "{{baseUrl}}/health/status",
+            "description": "Memory, uptime, ingested document count, Google auth flag."
           }
         }
       ]
     },
     {
       "name": "Chat",
-      "description": "OpenAI chat endpoints",
+      "description": "POST /chat = plain OpenAI. POST /chat/rag = retrieval from indexed documents (run ingestion process first).",
       "item": [
         {
-          "name": "Send Chat Message",
+          "name": "Send Chat Message (no RAG)",
           "request": {
             "method": "POST",
             "header": [
@@ -86,18 +80,14 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"message\": \"Hello, how are you?\",\n  \"messages\": []\n}"
+              "raw": "{\n  \"message\": \"Hello, how are you?\"\n}"
             },
-            "url": {
-              "raw": "{{baseUrl}}/chat",
-              "host": ["{{baseUrl}}"],
-              "path": ["chat"]
-            },
-            "description": "Send a message to OpenAI and get a response"
+            "url": "{{baseUrl}}/chat",
+            "description": "Required: message. Optional: messages[] for prior turns."
           }
         },
         {
-          "name": "Chat with History",
+          "name": "Chat with History (no RAG)",
           "request": {
             "method": "POST",
             "header": [
@@ -108,33 +98,79 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"message\": \"What did I just ask you?\",\n  \"messages\": [\n    {\"role\": \"user\", \"content\": \"Hello, how are you?\"},\n    {\"role\": \"assistant\", \"content\": \"I'm doing well, thank you for asking! How can I help you today?\"}\n  ]\n}"
+              "raw": "{\n  \"message\": \"What did I just ask you?\",\n  \"messages\": [\n    { \"role\": \"user\", \"content\": \"Hello, how are you?\" },\n    { \"role\": \"assistant\", \"content\": \"I'm doing well. How can I help?\" }\n  ]\n}"
             },
-            "url": {
-              "raw": "{{baseUrl}}/chat",
-              "host": ["{{baseUrl}}"],
-              "path": ["chat"]
+            "url": "{{baseUrl}}/chat",
+            "description": "Server appends `message` as the latest user turn."
+          }
+        },
+        {
+          "name": "RAG Chat (minimal)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"message\": \"What is this document about?\"\n}"
             },
-            "description": "Send a message with conversation history for context"
+            "url": "{{baseUrl}}/chat/rag",
+            "description": "Requires chunks in the vector store. Response includes `sources` and `usage`."
+          }
+        },
+        {
+          "name": "RAG Chat (topK, minScore, documentIds)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"message\": \"List the main risks mentioned.\",\n  \"topK\": 5,\n  \"minScore\": 0.15,\n  \"documentIds\": [\"{{canonicalDocumentId}}\"]\n}"
+            },
+            "url": "{{baseUrl}}/chat/rag",
+            "description": "Optional filters: only search listed canonical document IDs."
+          }
+        },
+        {
+          "name": "RAG Chat with prior turns",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"message\": \"Can you shorten that to one bullet?\",\n  \"messages\": [\n    { \"role\": \"user\", \"content\": \"What are the deadlines?\" },\n    { \"role\": \"assistant\", \"content\": \"The document sets Q2 for release.\" }\n  ]\n}"
+            },
+            "url": "{{baseUrl}}/chat/rag",
+            "description": "`message` is the current question; `messages` are prior user/assistant turns."
           }
         }
       ]
     },
     {
       "name": "Ingestion - Auth",
-      "description": "Google OAuth authentication endpoints",
+      "description": "Google OAuth for the backend connector.",
       "item": [
         {
           "name": "1. Get OAuth URL",
           "request": {
             "method": "GET",
             "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/ingestion/auth/url",
-              "host": ["{{baseUrl}}"],
-              "path": ["ingestion", "auth", "url"]
-            },
-            "description": "Get the Google OAuth authorization URL. Open this URL in browser to authenticate."
+            "url": "{{baseUrl}}/ingestion/auth/url",
+            "description": "Returns { url }. Open in browser to sign in."
           }
         },
         {
@@ -142,19 +178,8 @@
           "request": {
             "method": "GET",
             "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/ingestion/auth/callback?code=YOUR_AUTH_CODE",
-              "host": ["{{baseUrl}}"],
-              "path": ["ingestion", "auth", "callback"],
-              "query": [
-                {
-                  "key": "code",
-                  "value": "YOUR_AUTH_CODE",
-                  "description": "Replace with the authorization code from Google OAuth redirect"
-                }
-              ]
-            },
-            "description": "Exchange the OAuth authorization code for access tokens"
+            "url": "{{baseUrl}}/ingestion/auth/callback?code=YOUR_AUTH_CODE",
+            "description": "Exchange code for tokens (usually hit by redirect, not manually)."
           }
         },
         {
@@ -162,31 +187,23 @@
           "request": {
             "method": "GET",
             "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/ingestion/auth/status",
-              "host": ["{{baseUrl}}"],
-              "path": ["ingestion", "auth", "status"]
-            },
-            "description": "Check if the server is authenticated with Google"
+            "url": "{{baseUrl}}/ingestion/auth/status",
+            "description": "{ authenticated: boolean }"
           }
         }
       ]
     },
     {
       "name": "Ingestion - Documents",
-      "description": "Document listing and ingestion endpoints",
+      "description": "Ingest uses Google file IDs; listed docs use canonical ids (google_docs_...).",
       "item": [
         {
           "name": "List Available Documents",
           "request": {
             "method": "GET",
             "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/ingestion/documents/available",
-              "host": ["{{baseUrl}}"],
-              "path": ["ingestion", "documents", "available"]
-            },
-            "description": "List all Google Docs available in the user's Drive. Requires authentication."
+            "url": "{{baseUrl}}/ingestion/documents/available",
+            "description": "Drive listing; requires Google auth."
           }
         },
         {
@@ -194,19 +211,8 @@
           "request": {
             "method": "POST",
             "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/ingestion/documents/:documentId/ingest",
-              "host": ["{{baseUrl}}"],
-              "path": ["ingestion", "documents", ":documentId", "ingest"],
-              "variable": [
-                {
-                  "key": "documentId",
-                  "value": "YOUR_DOCUMENT_ID",
-                  "description": "Google Doc ID from the available documents list"
-                }
-              ]
-            },
-            "description": "Ingest a single document by its Google Doc ID"
+            "url": "{{baseUrl}}/ingestion/documents/{{googleDocId}}/ingest",
+            "description": "Path id = Google file ID (not canonical prefix)."
           }
         },
         {
@@ -221,14 +227,10 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"documentIds\": [\n    \"document_id_1\",\n    \"document_id_2\"\n  ]\n}"
+              "raw": "{\n  \"documentIds\": [\n    \"{{googleDocId}}\"\n  ]\n}"
             },
-            "url": {
-              "raw": "{{baseUrl}}/ingestion/documents/batch",
-              "host": ["{{baseUrl}}"],
-              "path": ["ingestion", "documents", "batch"]
-            },
-            "description": "Ingest multiple selected documents"
+            "url": "{{baseUrl}}/ingestion/documents/batch",
+            "description": "Body: Google file IDs from available list."
           }
         },
         {
@@ -236,12 +238,8 @@
           "request": {
             "method": "GET",
             "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/ingestion/documents",
-              "host": ["{{baseUrl}}"],
-              "path": ["ingestion", "documents"]
-            },
-            "description": "Get a list of all documents that have been ingested"
+            "url": "{{baseUrl}}/ingestion/documents",
+            "description": "Summary list; use `id` for process and RAG documentIds."
           }
         },
         {
@@ -249,19 +247,41 @@
           "request": {
             "method": "GET",
             "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/ingestion/documents/:documentId",
-              "host": ["{{baseUrl}}"],
-              "path": ["ingestion", "documents", ":documentId"],
-              "variable": [
-                {
-                  "key": "documentId",
-                  "value": "google_docs_YOUR_DOCUMENT_ID",
-                  "description": "Full document ID (includes google_docs_ prefix)"
-                }
-              ]
-            },
-            "description": "Get full details of a single ingested document including all content blocks"
+            "url": "{{baseUrl}}/ingestion/documents/{{canonicalDocumentId}}",
+            "description": "Full canonical document; path id includes google_docs_ prefix."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Ingestion - RAG (indexing)",
+      "description": "Chunk + embed + store. Required before POST /chat/rag returns useful results.",
+      "item": [
+        {
+          "name": "Process Single Document (index for RAG)",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": "{{baseUrl}}/ingestion/documents/{{canonicalDocumentId}}/process",
+            "description": "Path id = canonical id from GET /ingestion/documents. Returns chunksCreated, embeddingsGenerated."
+          }
+        },
+        {
+          "name": "Process All Ingested Documents",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": "{{baseUrl}}/ingestion/documents/process-all",
+            "description": "Indexes every ingested document."
+          }
+        },
+        {
+          "name": "RAG / Vector Stats",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/ingestion/rag/stats",
+            "description": "Processing and vector store statistics."
           }
         }
       ]

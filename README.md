@@ -1,98 +1,140 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
-</p>
+# AI Document Chat Backend
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+A NestJS backend for a document intelligence platform that ingests documents from various sources (starting with Google Docs), normalizes them into a canonical format, and prepares them for AI processing (chunking, embeddings, RAG).
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+## Features
 
-## Description
+- Google Docs ingestion via OAuth 2.0
+- User-controlled document selection
+- Canonical document format (source-agnostic)
+- Content block extraction (headings, paragraphs, lists, tables)
+- Extensible connector architecture for future sources (Confluence, Notion, etc.)
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+## Quick Start
 
-## Project setup
+### 1. Install dependencies
 
 ```bash
-$ npm install
+npm install
 ```
 
-## Compile and run the project
+### 2. Configure environment variables
+
+Create a `.env` file in the project root:
+
+```env
+# Server
+PORT=3001
+
+# OpenAI
+OPENAI_API_KEY=your-openai-api-key
+OPENAI_MODEL=gpt-4
+OPENAI_EMBEDDING_MODEL=text-embedding-3-small
+
+# Google OAuth (for Google Docs ingestion)
+GOOGLE_CLIENT_ID=your-google-client-id.apps.googleusercontent.com
+GOOGLE_CLIENT_SECRET=your-google-client-secret
+GOOGLE_REDIRECT_URI=http://localhost:3001/ingestion/auth/callback
+```
+
+### 3. Set up Google OAuth credentials
+
+1. Go to [Google Cloud Console](https://console.cloud.google.com/)
+2. Create a new project or select existing
+3. Enable Google Docs API and Google Drive API
+4. Go to Credentials > Create Credentials > OAuth client ID
+5. Set application type to "Web application"
+6. Add `http://localhost:3001/ingestion/auth/callback` as authorized redirect URI
+7. Copy Client ID and Client Secret to your `.env` file
+
+### 4. Run the server
 
 ```bash
-# development
-$ npm run start
+# Development mode
+npm run start:dev
 
-# watch mode
-$ npm run start:dev
-
-# production mode
-$ npm run start:prod
+# Production mode
+npm run build
+npm run start:prod
 ```
 
-## Run tests
+## API Endpoints
+
+### Health Checks
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/health` | Basic health check |
+| GET | `/health/live` | Kubernetes liveness probe |
+| GET | `/health/ready` | Kubernetes readiness probe |
+| GET | `/health/status` | Detailed service status (memory, uptime, etc.) |
+
+### Authentication
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/ingestion/auth/url` | Get Google OAuth authorization URL |
+| GET | `/ingestion/auth/callback?code=xxx` | OAuth callback (exchanges code for tokens) |
+| GET | `/ingestion/auth/status` | Check authentication status |
+
+### Document Ingestion
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/ingestion/documents/available` | List documents from user's Google Drive |
+| POST | `/ingestion/documents/batch` | Ingest selected documents |
+| POST | `/ingestion/documents/:id/ingest` | Ingest a single document |
+| GET | `/ingestion/documents` | List all ingested documents |
+| GET | `/ingestion/documents/:id` | Get document with full content |
+
+### Example: Ingest Selected Documents
 
 ```bash
-# unit tests
-$ npm run test
+# Request
+POST /ingestion/documents/batch
+Content-Type: application/json
 
-# e2e tests
-$ npm run test:e2e
+{
+  "documentIds": ["1abc123", "2def456"]
+}
 
-# test coverage
-$ npm run test:cov
+# Response
+{
+  "success": ["google_docs_1abc123", "google_docs_2def456"],
+  "failed": []
+}
 ```
 
-## Deployment
+## Project Structure
 
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
-
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
-
-```bash
-$ npm install -g @nestjs/mau
-$ mau deploy
+```
+src/
+├── main.ts                 # Application entry point
+├── app.module.ts           # Root module
+├── config/
+│   └── env.config.ts       # Environment configuration
+├── ingestion/              # Document ingestion pipeline
+│   ├── types.ts            # All types (CanonicalDocument, ContentBlock, etc.)
+│   ├── google-docs.connector.ts    # Google OAuth + API calls
+│   ├── google-docs.normalizer.ts   # Converts to canonical format
+│   ├── document.store.ts   # In-memory storage (swap for DB later)
+│   ├── ingestion.service.ts        # Orchestrates the pipeline
+│   ├── ingestion.controller.ts     # REST API
+│   └── ingestion.module.ts # NestJS module
+├── common/
+│   └── openai/
+│       └── openai.service.ts
+└── ...
 ```
 
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
+## Testing with Postman
 
-## Resources
+Import the collection from `postman/ai-doc-chat.postman_collection.json`
 
-Check out a few resources that may come in handy when working with NestJS:
+## Architecture
 
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
-
-## Support
-
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
-
-## Stay in touch
-
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
+See [ARCHITECTURE.md](./ARCHITECTURE.md) for detailed architecture documentation.
 
 ## License
 
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+MIT

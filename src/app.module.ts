@@ -2,9 +2,10 @@ import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import envConfig from './config/env.config';
 import { AppController } from './app.controller';
-import { OpenAIService } from './common/openai/openai.service';
+import { ChatModule } from './chat/chat.module';
 import { IngestionModule } from './ingestion/ingestion.module';
 import { HealthModule } from './health/health.module';
+import { RagModule } from './rag/rag.module';
 
 @Module({
   imports: [
@@ -14,8 +15,10 @@ import { HealthModule } from './health/health.module';
     }),
     IngestionModule,
     HealthModule,
+    RagModule,
+    ChatModule,
   ],
   controllers: [AppController],
-  providers: [OpenAIService],
+  providers: [],
 })
 export class AppModule {}

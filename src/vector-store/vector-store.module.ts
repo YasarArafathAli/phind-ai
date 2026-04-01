@@ -1,11 +1,8 @@
-// Vector store module - FAISS integration
-// We'll implement this in Phase 1
-
 import { Module } from '@nestjs/common';
+import { VectorStoreService } from './vector-store.service';
 
 @Module({
-  imports: [],
-  providers: [],
-  exports: [],
+  providers: [VectorStoreService],
+  exports: [VectorStoreService],
 })
 export class VectorStoreModule {}
