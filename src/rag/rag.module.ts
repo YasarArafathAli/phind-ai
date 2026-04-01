@@ -1,11 +1,26 @@
-// RAG module - helper utilities for RAG pipeline
-// We'll implement this in Phase 2-3
-
 import { Module } from '@nestjs/common';
+import { ChunkingService } from './chunking.service';
+import { EmbeddingService } from './embedding.service';
+import { ProcessingService } from './processing.service';
+import { PromptBuilderService } from './prompt-builder.service';
+import { OpenAIService } from '../common/openai/openai.service';
+import { VectorStoreModule } from '../vector-store/vector-store.module';
 
 @Module({
-  imports: [],
-  providers: [],
-  exports: [],
+  imports: [VectorStoreModule],
+  providers: [
+    ChunkingService,
+    EmbeddingService,
+    ProcessingService,
+    PromptBuilderService,
+    OpenAIService,
+  ],
+  exports: [
+    ChunkingService,
+    EmbeddingService,
+    ProcessingService,
+    PromptBuilderService,
+    OpenAIService,
+  ],
 })
 export class RagModule {}
