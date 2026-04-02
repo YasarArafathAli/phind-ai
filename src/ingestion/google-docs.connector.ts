@@ -176,6 +176,13 @@ export class GoogleDocsConnector implements OnModuleInit {
     return !!this.credentials?.accessToken;
   }
 
+  /** Clear in-memory tokens and delete persisted OAuth file (disconnect or sign in as another user). */
+  async disconnect(): Promise<void> {
+    this.credentials = null;
+    await this.oauthStorage.clear();
+    this.logger.log('Google OAuth disconnected');
+  }
+
   /**
    * List native Google Docs and PDFs in the user's Drive (not other Office types).
    */

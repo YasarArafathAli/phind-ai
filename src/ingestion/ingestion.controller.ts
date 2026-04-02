@@ -123,6 +123,16 @@ export class IngestionController {
   }
 
   /**
+   * Clear stored Google OAuth tokens so the user can disconnect or sign in with another account.
+   * POST /ingestion/auth/disconnect
+   */
+  @Post('auth/disconnect')
+  async disconnect() {
+    await this.connector.disconnect();
+    return { ok: true as const };
+  }
+
+  /**
    * List available documents from Google Drive
    * GET /ingestion/documents/available
    */

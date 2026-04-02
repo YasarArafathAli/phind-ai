@@ -84,4 +84,17 @@ export class GoogleOAuthStorageService implements OnModuleInit {
     );
     this.logger.log(`Saved Google OAuth tokens`);
   }
+
+  /** Remove persisted tokens (disconnect / switch account). */
+  async clear(): Promise<void> {
+    try {
+      await fs.unlink(this.filePath);
+      this.logger.log('Removed Google OAuth token file');
+    } catch (e) {
+      const code = (e as NodeJS.ErrnoException).code;
+      if (code !== 'ENOENT') {
+        throw e;
+      }
+    }
+  }
 }
