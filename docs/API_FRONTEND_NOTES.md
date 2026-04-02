@@ -1,5 +1,7 @@
 # API notes for frontend integration
 
+**See also:** [Integration checklist](../../docs/INTEGRATION_CHECKLIST.md) — phased tasks to align the Next.js app with this API (contracts, OAuth, indexing).
+
 Base URL defaults to **`http://localhost:3001`** (see `PORT` in `.env`). All JSON bodies use **`Content-Type: application/json`**.
 
 Interactive schemas and “Try it out” are available at **`GET /api`** (Swagger UI).
@@ -185,6 +187,64 @@ The server appends `message` as the latest user turn (same pattern as many chat 
   "success": true
 }
 ```
+
+---
+
+## WebSocket (Socket.IO) — streaming chat (Phase 4)
+
+Connect a **Socket.IO** client to the **same origin and port** as the REST API, e.g. `http://localhost:3001`. Path defaults to Socket.IO’s standard (`/socket.io`). CORS allows any origin for the handshake.
+
+Use **`socket.io-client`** on the frontend:
+
+```text
+npm install socket.io-client
+```
+
+```javascript
+import { io } from 'socket.io-client';
+const socket = io('http://localhost:3001', { transports: ['websocket', 'polling'] });
+```
+
+### Conversation IDs
+
+- Omit **`conversationId`** on the first message: the server generates one and sends it in **`rag:started`** / **`chat:started`** (and again in **`rag:done`** / **`chat:done`**).
+- Send that **`conversationId`** on later messages so the server can load **in-memory** prior turns (user + assistant). History is **lost on server restart**.
+
+Optional **`messages`** on a request are **extra** prior turns for that request only (appended after stored history).
+
+### RAG streaming — event `rag:stream` (client emits)
+
+**Payload (JSON):**
+
+| Field | Type | Required | Notes |
+|-------|------|----------|--------|
+| `conversationId` | string | no | Thread id from a previous `rag:started` / `rag:done` |
+| `message` | string | yes | Current user question |
+| `messages` | array | no | Optional extra `{ role, content }[]` for this turn only |
+| `topK`, `minScore`, `documentIds` | | no | Same meaning as `POST /chat/rag` |
+
+**Server events (listen):**
+
+| Event | Payload |
+|-------|---------|
+| `rag:started` | `{ conversationId }` |
+| `rag:chunk` | `{ conversationId, delta }` — many times; append `delta` for the assistant reply |
+| `rag:done` | `{ conversationId, message, sources, usage }` — same shape as REST `POST /chat/rag` |
+| `rag:error` | `{ conversationId, code, message }` — e.g. **400** if vector store is empty |
+
+### Plain chat streaming — event `chat:stream` (client emits)
+
+No document retrieval; same OpenAI model as `POST /chat`.
+
+**Payload:** `{ conversationId?, message, messages? }`
+
+**Server events:** `chat:started`, `chat:chunk` `{ conversationId, delta }`, `chat:done` `{ conversationId, message, usage }`, `chat:error`.
+
+### Clear history — event `history:clear` (client emits)
+
+**Payload:** `{ conversationId }` (required)
+
+**Server:** `history:cleared` `{ conversationId }` or `history:error` `{ code, message }`.
 
 ---
 

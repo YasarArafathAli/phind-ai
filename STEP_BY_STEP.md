@@ -136,12 +136,12 @@ return { answer: response.choices[0].message.content };
 - [x] ChatModule wired with `RagModule` and `VectorStoreModule`
 - [x] Vector store search supports optional filter by `documentIds`
 
-### Phase 4: Real-time Chat [NEXT - PLANNED]
-- [ ] Install @nestjs/websockets
-- [ ] ChatGateway WebSocket implementation
-- [ ] Streaming responses (token by token)
-- [ ] Chat history management
-- [ ] Token usage tracking
+### Phase 4: Real-time Chat [COMPLETE]
+- [x] `@nestjs/websockets`, `@nestjs/platform-socket.io`, `socket.io`
+- [x] `ChatGateway` — Socket.IO events `rag:stream`, `chat:stream`, `history:clear`
+- [x] Streaming completions via OpenAI (`stream: true`, token deltas on `rag:chunk` / `chat:chunk`)
+- [x] `ChatHistoryService` — in-memory per-`conversationId` history for WebSocket flows
+- [x] Token usage on stream (`stream_options.include_usage`) on `rag:done` / `chat:done`
 
 ## Step 4: Common Questions (Before We Start)
 
@@ -174,9 +174,8 @@ return { answer: response.choices[0].message.content };
 - In-memory vector store with cosine similarity (no external dependencies)
 - In-memory document store (will migrate to database later)
 
-### To Install (Phase 4)
-- `@nestjs/websockets` - WebSocket support for real-time streaming
-- `@nestjs/platform-socket.io` - Socket.IO adapter
+### Installed (Phase 4)
+- `@nestjs/websockets`, `@nestjs/platform-socket.io`, `socket.io` — WebSocket streaming chat
 
 ### Optional (Future Enhancements)
 - `faiss-node` - For FAISS-based vector search (if performance needed)
@@ -185,19 +184,15 @@ return { answer: response.choices[0].message.content };
 
 ## Current Status
 
-**Phases 1, 2, and 3 are COMPLETE.**
+**Phases 1–4 are COMPLETE.**
 
 - **Ingestion:** Google Docs OAuth, canonical documents, in-memory document store.
 - **Indexing:** Chunking, embeddings, in-memory vector search (cosine similarity), process endpoints.
-- **RAG query:** `POST /chat/rag` returns an answer grounded on retrieved chunks plus **sources** for transparency.
+- **RAG query:** `POST /chat/rag` or Socket.IO `rag:stream` — answers grounded on chunks plus **sources**.
+- **Streaming:** Socket.IO `rag:chunk` / `chat:chunk` token deltas; **conversation** history via `conversationId` (in-memory).
 
-Prerequisite for RAG: run `POST /ingestion/documents/:id/process` (or `process-all`) so the vector store has chunks before calling `/chat/rag`.
+Prerequisite for RAG: run `POST /ingestion/documents/:id/process` (or `process-all`) before RAG endpoints or `rag:stream`.
 
 ## What's Next?
 
-**Phase 4: Real-time Chat**
-
-- Install `@nestjs/websockets` and `@nestjs/platform-socket.io`
-- Implement `ChatGateway` (replace placeholder), streaming completions, and optional persistent chat history
-
-Ready to start Phase 4 when you are.
+Possible enhancements: **persist** chat history (database), WebSocket **auth**, PDF upload, external vector DB. See Optional (Future Enhancements) above.

@@ -9,6 +9,8 @@ A NestJS backend for a document intelligence platform that ingests documents fro
 - Canonical document format (source-agnostic)
 - Content block extraction (headings, paragraphs, lists, tables)
 - Extensible connector architecture for future sources (Confluence, Notion, etc.)
+- RAG query over indexed chunks (`POST /chat/rag` or Socket.IO `rag:stream`)
+- **Socket.IO** streaming chat with in-memory conversation history (see `docs/API_FRONTEND_NOTES.md`)
 
 ## Quick Start
 
@@ -86,6 +88,20 @@ npm run start:prod
 | POST | `/ingestion/documents/:id/ingest` | Ingest a single document |
 | GET | `/ingestion/documents` | List all ingested documents |
 | GET | `/ingestion/documents/:id` | Get document with full content |
+| POST | `/ingestion/documents/:id/process` | Chunk, embed, and index document for RAG |
+| POST | `/ingestion/documents/process-all` | Index all ingested documents |
+| GET | `/ingestion/rag/stats` | Vector store / indexing stats |
+
+### Chat & RAG (REST)
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/chat` | Plain OpenAI chat (no documents) |
+| POST | `/chat/rag` | RAG answer with `sources` and `usage` |
+
+### WebSocket (Socket.IO)
+
+Connect a Socket.IO client to the **same URL/port** as the HTTP API (e.g. `http://localhost:3001`). Use events such as **`rag:stream`** and **`chat:stream`** for token-by-token streaming; the server assigns a **`conversationId`** for multi-turn history (in-memory). Full event payloads and examples: **[docs/API_FRONTEND_NOTES.md](./docs/API_FRONTEND_NOTES.md)**.
 
 ### Example: Ingest Selected Documents
 
@@ -129,7 +145,7 @@ src/
 
 ## Testing with Postman
 
-Import the collection from `postman/ai-doc-chat.postman_collection.json`
+Import the collection from `postman/ai-doc-chat.postman_collection.json`. REST only; WebSocket flows are documented in `docs/API_FRONTEND_NOTES.md`.
 
 ## Architecture
 
