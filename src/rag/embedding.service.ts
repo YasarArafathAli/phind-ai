@@ -40,7 +40,10 @@ export class EmbeddingService {
         embeddingModel: model,
       };
     } catch (error) {
-      this.logger.error(`Failed to generate embedding for chunk ${chunk.id}:`, error);
+      this.logger.error(
+        `Failed to generate embedding for chunk ${chunk.id}:`,
+        error,
+      );
       throw new Error(
         `Failed to generate embedding: ${error instanceof Error ? error.message : 'Unknown error'}`,
       );
@@ -64,7 +67,9 @@ export class EmbeddingService {
 
     for (let i = 0; i < chunks.length; i += batchSize) {
       const batch = chunks.slice(i, i + batchSize);
-      this.logger.debug(`Processing batch ${Math.floor(i / batchSize) + 1}/${Math.ceil(chunks.length / batchSize)}`);
+      this.logger.debug(
+        `Processing batch ${Math.floor(i / batchSize) + 1}/${Math.ceil(chunks.length / batchSize)}`,
+      );
 
       try {
         const client = this.openAIService.getClient();
@@ -82,7 +87,10 @@ export class EmbeddingService {
           });
         }
       } catch (error) {
-        this.logger.error(`Failed to generate embeddings for batch starting at index ${i}:`, error);
+        this.logger.error(
+          `Failed to generate embeddings for batch starting at index ${i}:`,
+          error,
+        );
         // Continue with other batches, but log the error
         throw new Error(
           `Failed to generate embeddings: ${error instanceof Error ? error.message : 'Unknown error'}`,

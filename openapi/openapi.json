@@ -1,0 +1,567 @@
+{
+  "openapi": "3.0.0",
+  "paths": {
+    "/chat": {
+      "post": {
+        "description": "This endpoint sends a message to OpenAI API and returns the AI response. You can optionally provide conversation history for context.",
+        "operationId": "AppController_chat",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChatRequestDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successfully received response from OpenAI",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChatResponseDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request - message is required"
+          },
+          "500": {
+            "description": "Internal server error - failed to get response from OpenAI"
+          }
+        },
+        "summary": "Send a message to OpenAI and get a response",
+        "tags": [
+          "API"
+        ]
+      }
+    },
+    "/ingestion/auth/url": {
+      "get": {
+        "operationId": "IngestionController_getAuthUrl",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Ingestion"
+        ]
+      }
+    },
+    "/ingestion/auth/callback": {
+      "get": {
+        "operationId": "IngestionController_authCallback",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Ingestion"
+        ]
+      }
+    },
+    "/ingestion/auth/status": {
+      "get": {
+        "operationId": "IngestionController_getAuthStatus",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Ingestion"
+        ]
+      }
+    },
+    "/ingestion/documents/available": {
+      "get": {
+        "operationId": "IngestionController_listAvailable",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Ingestion"
+        ]
+      }
+    },
+    "/ingestion/documents/batch": {
+      "post": {
+        "operationId": "IngestionController_ingestBatch",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Ingestion"
+        ]
+      }
+    },
+    "/ingestion/documents/{id}/ingest": {
+      "post": {
+        "operationId": "IngestionController_ingestDocument",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Ingestion"
+        ]
+      }
+    },
+    "/ingestion/documents": {
+      "get": {
+        "operationId": "IngestionController_getDocuments",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Ingestion"
+        ]
+      }
+    },
+    "/ingestion/documents/{id}": {
+      "get": {
+        "operationId": "IngestionController_getDocument",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Ingestion"
+        ]
+      }
+    },
+    "/ingestion/documents/{id}/process": {
+      "post": {
+        "operationId": "IngestionController_processDocument",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Ingestion"
+        ]
+      }
+    },
+    "/ingestion/documents/process-all": {
+      "post": {
+        "operationId": "IngestionController_processAllDocuments",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Ingestion"
+        ]
+      }
+    },
+    "/ingestion/rag/stats": {
+      "get": {
+        "operationId": "IngestionController_getRagStats",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Ingestion"
+        ]
+      }
+    },
+    "/health": {
+      "get": {
+        "operationId": "HealthController_health",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Service is healthy"
+          }
+        },
+        "summary": "Basic health check",
+        "tags": [
+          "Health"
+        ]
+      }
+    },
+    "/health/live": {
+      "get": {
+        "operationId": "HealthController_liveness",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Service is alive"
+          }
+        },
+        "summary": "Liveness probe for Kubernetes",
+        "tags": [
+          "Health"
+        ]
+      }
+    },
+    "/health/ready": {
+      "get": {
+        "operationId": "HealthController_readiness",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Service is ready to accept traffic"
+          },
+          "503": {
+            "description": "Service is not ready"
+          }
+        },
+        "summary": "Readiness probe for Kubernetes",
+        "tags": [
+          "Health"
+        ]
+      }
+    },
+    "/health/status": {
+      "get": {
+        "operationId": "HealthController_status",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Service status details"
+          }
+        },
+        "summary": "Detailed service status",
+        "tags": [
+          "Health"
+        ]
+      }
+    },
+    "/chat/rag": {
+      "post": {
+        "description": "Retrieves the most relevant text chunks, sends them with your question to the model, and returns an answer plus source references.",
+        "operationId": "ChatController_rag",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RagChatRequestDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Answer with sources and token usage",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RagChatResponseDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "No documents indexed in the vector store yet"
+          },
+          "500": {
+            "description": "OpenAI or internal error"
+          }
+        },
+        "summary": "Ask a question using your indexed documents (RAG)",
+        "tags": [
+          "Chat"
+        ]
+      }
+    }
+  },
+  "info": {
+    "title": "AI Doc Chat Backend API",
+    "description": "Document ingestion, RAG chat, and health endpoints. Regenerate `openapi/openapi.json` with `npm run openapi:export`.",
+    "version": "1.0",
+    "contact": {}
+  },
+  "tags": [
+    {
+      "name": "API",
+      "description": "Plain chat and legacy entrypoints"
+    },
+    {
+      "name": "Chat",
+      "description": "RAG and document-grounded chat"
+    },
+    {
+      "name": "Health",
+      "description": "Liveness and readiness"
+    },
+    {
+      "name": "Ingestion",
+      "description": "Google Drive OAuth and document pipeline"
+    }
+  ],
+  "servers": [],
+  "components": {
+    "schemas": {
+      "ChatMessageDto": {
+        "type": "object",
+        "properties": {
+          "role": {
+            "type": "string",
+            "description": "Role of the message sender",
+            "example": "user",
+            "enum": [
+              "user",
+              "assistant",
+              "system"
+            ]
+          },
+          "content": {
+            "type": "string",
+            "description": "Content of the message",
+            "example": "Hello, how are you?"
+          }
+        },
+        "required": [
+          "role",
+          "content"
+        ]
+      },
+      "ChatRequestDto": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string",
+            "description": "The message to send to OpenAI",
+            "example": "What is the capital of France?"
+          },
+          "messages": {
+            "description": "Optional conversation history for context",
+            "example": [
+              {
+                "role": "user",
+                "content": "Hello"
+              },
+              {
+                "role": "assistant",
+                "content": "Hi there! How can I help you?"
+              }
+            ],
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ChatMessageDto"
+            }
+          }
+        },
+        "required": [
+          "message"
+        ]
+      },
+      "UsageDto": {
+        "type": "object",
+        "properties": {
+          "prompt_tokens": {
+            "type": "number",
+            "description": "Number of prompt tokens used",
+            "example": 10
+          },
+          "completion_tokens": {
+            "type": "number",
+            "description": "Number of completion tokens used",
+            "example": 20
+          },
+          "total_tokens": {
+            "type": "number",
+            "description": "Total number of tokens used",
+            "example": 30
+          }
+        },
+        "required": [
+          "prompt_tokens",
+          "completion_tokens",
+          "total_tokens"
+        ]
+      },
+      "ChatResponseDto": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string",
+            "description": "The response message from OpenAI",
+            "example": "The capital of France is Paris."
+          },
+          "usage": {
+            "description": "Token usage information",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/UsageDto"
+              }
+            ]
+          }
+        },
+        "required": [
+          "message",
+          "usage"
+        ]
+      },
+      "RagChatRequestDto": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string",
+            "description": "The question to answer using your indexed documents",
+            "example": "What is the main conclusion?"
+          },
+          "messages": {
+            "description": "Prior conversation turns (the current question is `message` only)",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ChatMessageDto"
+            }
+          },
+          "topK": {
+            "type": "number",
+            "description": "Number of chunks to retrieve (1-20)",
+            "example": 5,
+            "default": 5
+          },
+          "minScore": {
+            "type": "number",
+            "description": "Minimum similarity score (0-1); higher filters more strictly",
+            "example": 0,
+            "default": 0
+          },
+          "documentIds": {
+            "description": "Canonical document IDs from GET /ingestion/documents (e.g. google_docs_<fileId>). Not raw Google Drive file IDs. Omit to search all indexed documents.",
+            "example": [
+              "google_docs_abc123"
+            ],
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "message"
+        ]
+      },
+      "RagSourceDto": {
+        "type": "object",
+        "properties": {
+          "chunkId": {
+            "type": "string",
+            "description": "Chunk identifier",
+            "example": "chunk_google_docs_abc_0"
+          },
+          "documentId": {
+            "type": "string",
+            "description": "Document identifier",
+            "example": "google_docs_abc"
+          },
+          "score": {
+            "type": "number",
+            "description": "Cosine similarity score (higher is more relevant)",
+            "example": 0.82
+          },
+          "title": {
+            "type": "string",
+            "description": "Document title when available"
+          },
+          "source": {
+            "type": "string",
+            "description": "Source system (e.g. google_docs)"
+          },
+          "excerpt": {
+            "type": "string",
+            "description": "Short excerpt of the chunk text used as context",
+            "example": "The project deadline is set for Q2..."
+          }
+        },
+        "required": [
+          "chunkId",
+          "documentId",
+          "score",
+          "excerpt"
+        ]
+      },
+      "RagChatResponseDto": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string",
+            "description": "Answer based on retrieved document context"
+          },
+          "sources": {
+            "description": "Chunks that were supplied to the model as context",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RagSourceDto"
+            }
+          },
+          "usage": {
+            "description": "Token usage for the completion call",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/UsageDto"
+              }
+            ]
+          }
+        },
+        "required": [
+          "message",
+          "sources",
+          "usage"
+        ]
+      }
+    }
+  }
+}

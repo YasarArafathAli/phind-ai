@@ -6,6 +6,8 @@ Base URL defaults to **`http://localhost:3001`** (see `PORT` in `.env`). All JSO
 
 Interactive schemas and “Try it out” are available at **`GET /api`** (Swagger UI).
 
+A **frozen OpenAPI JSON** for codegen lives at **`openapi/openapi.json`** in this repo. Regenerate it with **`npm run openapi:export`** (from `ai-doc-chat-backend`). The Next.js app then runs **`npm run generate:api-types`** in **`phind-ai`** to refresh **`src/generated/openapi-types.ts`**. See [Phase 4 contracts](../../docs/PHASE_4_CONTRACTS.md).
+
 A **Postman collection** lives at `postman/ai-doc-chat.postman_collection.json` (import it and set the `baseUrl`, `googleDocId`, and `canonicalDocumentId` variables).
 
 CORS is enabled for browser clients (`main.ts`).
@@ -15,8 +17,9 @@ CORS is enabled for browser clients (`main.ts`).
 ## Typical document Q&A flow
 
 1. **Google OAuth (server-side tokens)**  
-   `GET /ingestion/auth/url` → open `url` in a browser → user signs in → Google redirects to **`GET /ingestion/auth/callback?code=...`** (often opened automatically).  
-   Then `GET /ingestion/auth/status` should show `{ "authenticated": true }`.
+   `GET /ingestion/auth/url` → open `url` in a browser → user signs in → Google redirects to the **backend** at **`GET /ingestion/auth/callback?code=...`**. The API exchanges the code, then **HTTP 302 redirects** to the Next app at **`{FRONTEND_URL}/auth/callback?auth=success`** (or `?auth=error&reason=...`).  
+   Set **`FRONTEND_URL`** in the Nest `.env` (e.g. `http://localhost:3000`) to match where the UI runs. In [Google Cloud Console](https://console.cloud.google.com/apis/credentials), the OAuth client’s **Authorized redirect URI** must be the **backend** callback (e.g. `http://localhost:3001/ingestion/auth/callback`), not the Next route.  
+   Then `GET /ingestion/auth/status` should show `{ "authenticated": true }`. The API persists tokens to disk (default `data/google-oauth.json`) and reloads them on restart so users do not need to sign in again unless tokens are revoked or the file is deleted.
 
 2. **List & ingest**  
    `GET /ingestion/documents/available` → pick IDs.  
@@ -155,15 +158,15 @@ The server appends `message` as the latest user turn (same pattern as many chat 
 | Method | Path | Notes |
 |--------|------|--------|
 | GET | `/ingestion/auth/url` | Returns `{ "url": "<Google OAuth URL>" }` |
-| GET | `/ingestion/auth/callback?code=...` | Exchanges code; returns JSON success/error |
+| GET | `/ingestion/auth/callback` | Google sends `?code=...` or `?error=...`. Nest exchanges the code, then **302 redirects** to `{FRONTEND_URL}/auth/callback?auth=success` or `?auth=error&reason=...` |
 | GET | `/ingestion/auth/status` | `{ "authenticated": boolean }` |
 
 ### Documents
 
 | Method | Path | Body / params |
 |--------|------|----------------|
-| GET | `/ingestion/documents/available` | Lists docs in Drive (requires auth) |
-| POST | `/ingestion/documents/batch` | `{ "documentIds": ["<google file id>", ...] }` |
+| GET | `/ingestion/documents/available` | Lists **native Google Docs** and **PDFs** in Drive (each row includes `mimeType`). Other file types are not listed. |
+| POST | `/ingestion/documents/batch` | `{ "documentIds": ["<google file id>", ...] }` — response: `{ "success": string[], "failed": { "id": string, "error": string }[] }` (canonical ids in `success`). Validation errors return **400** with `{ "message": "...", "statusCode": 400 }`. |
 | POST | `/ingestion/documents/:id/ingest` | `:id` = Google Doc **file** ID |
 | GET | `/ingestion/documents` | List ingested docs (summary) |
 | GET | `/ingestion/documents/:id` | `:id` = **canonical** id (e.g. `google_docs_<fileId>`) |
@@ -172,9 +175,9 @@ The server appends `message` as the latest user turn (same pattern as many chat 
 
 | Method | Path | Notes |
 |--------|------|--------|
-| POST | `/ingestion/documents/:id/process` | `:id` = **canonical** document id from `GET /ingestion/documents` |
+| POST | `/ingestion/documents/:id/process` | `:id` = **canonical** document id from `GET /ingestion/documents`. Calling again **replaces** prior chunks for that document in the vector store (no duplicates). |
 | POST | `/ingestion/documents/process-all` | Processes every ingested document |
-| GET | `/ingestion/rag/stats` | Vector store / processing stats |
+| GET | `/ingestion/rag/stats` | `{ "totalEmbeddings": number, "documentCount": number }` |
 
 **Process single document success (example)**
 

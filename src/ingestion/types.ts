@@ -43,3 +43,20 @@ export interface GoogleCredentials {
   refreshToken?: string;
   expiresAt?: Date;
 }
+
+/** Result of connector fetch before normalization (Google Doc vs PDF on Drive). */
+export type FetchedDriveDocument =
+  | {
+      kind: 'gdoc';
+      id: string;
+      title: string;
+      body: unknown;
+      revisionId: string;
+    }
+  | {
+      kind: 'pdf';
+      id: string;
+      title: string;
+      text: string;
+      revisionId: string;
+    };

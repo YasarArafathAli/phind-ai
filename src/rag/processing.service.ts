@@ -43,13 +43,18 @@ export class ProcessingService {
         };
       }
 
+      // Drop prior chunks for this document so re-processing does not duplicate vectors
+      this.vectorStore.removeDocument(document.id);
+
       // Step 2: Generate embeddings for all chunks
       const embeddedChunks = await this.embeddingService.embedChunks(chunks);
       this.logger.log(`Generated ${embeddedChunks.length} embeddings`);
 
       // Step 3: Store in vector store
       this.vectorStore.addEmbeddings(embeddedChunks);
-      this.logger.log(`Stored ${embeddedChunks.length} embeddings in vector store`);
+      this.logger.log(
+        `Stored ${embeddedChunks.length} embeddings in vector store`,
+      );
 
       return {
         chunks,
@@ -65,10 +70,12 @@ export class ProcessingService {
   /**
    * Process multiple documents in sequence
    */
-  async processDocuments(
-    documents: CanonicalDocument[],
-  ): Promise<{
-    processed: Array<{ documentId: string; chunkCount: number; success: boolean }>;
+  async processDocuments(documents: CanonicalDocument[]): Promise<{
+    processed: Array<{
+      documentId: string;
+      chunkCount: number;
+      success: boolean;
+    }>;
     totalChunks: number;
   }> {
     this.logger.log(`Processing ${documents.length} documents`);
@@ -126,7 +133,7 @@ export class ProcessingService {
   } {
     return {
       totalEmbeddings: this.vectorStore.getCount(),
-      documentCount: 0, // TODO: Track document count if needed
+      documentCount: this.vectorStore.getDocumentCount(),
     };
   }
 }

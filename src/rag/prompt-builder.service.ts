@@ -8,7 +8,7 @@ const MAX_CONTEXT_CHARS = 12_000;
 @Injectable()
 export class PromptBuilderService {
   private readonly systemPrompt =
-    'You are a helpful assistant. Answer using only the context provided below, which comes from the user\'s documents. ' +
+    "You are a helpful assistant. Answer using only the context provided below, which comes from the user's documents. " +
     'If the context does not contain enough information, say so clearly. Be concise and accurate.';
 
   /**
@@ -18,7 +18,10 @@ export class PromptBuilderService {
   buildRagMessages(
     question: string,
     searchResults: SearchResult[],
-    priorMessages: Array<{ role: 'user' | 'assistant' | 'system'; content: string }>,
+    priorMessages: Array<{
+      role: 'user' | 'assistant' | 'system';
+      content: string;
+    }>,
   ): ChatCompletionMessageParam[] {
     const contextBlock = this.formatContext(searchResults);
 
@@ -59,7 +62,9 @@ export class PromptBuilderService {
         : `[${i + 1}] (similarity: ${r.score.toFixed(4)})`;
       const block = `${header}\n${r.chunk.text}`;
       if (used + block.length > MAX_CONTEXT_CHARS) {
-        parts.push('\n[Additional matching passages omitted due to length limit.]');
+        parts.push(
+          '\n[Additional matching passages omitted due to length limit.]',
+        );
         break;
       }
       parts.push(block);

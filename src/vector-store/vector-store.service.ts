@@ -20,21 +20,26 @@ export class VectorStoreService {
    * Add embedded chunks to the vector store
    */
   addEmbeddings(embeddedChunks: EmbeddedChunk[]): void {
-    this.logger.log(`Adding ${embeddedChunks.length} embeddings to vector store`);
+    this.logger.log(
+      `Adding ${embeddedChunks.length} embeddings to vector store`,
+    );
 
     for (const embeddedChunk of embeddedChunks) {
       // Store the embedding
       this.embeddings.set(embeddedChunk.chunk.id, embeddedChunk);
 
       // Index by document ID
-      const chunkIds = this.documentChunks.get(embeddedChunk.chunk.documentId) || [];
+      const chunkIds =
+        this.documentChunks.get(embeddedChunk.chunk.documentId) || [];
       if (!chunkIds.includes(embeddedChunk.chunk.id)) {
         chunkIds.push(embeddedChunk.chunk.id);
         this.documentChunks.set(embeddedChunk.chunk.documentId, chunkIds);
       }
     }
 
-    this.logger.log(`Vector store now contains ${this.embeddings.size} embeddings`);
+    this.logger.log(
+      `Vector store now contains ${this.embeddings.size} embeddings`,
+    );
   }
 
   /**
@@ -66,7 +71,10 @@ export class VectorStoreService {
         continue;
       }
 
-      const score = this.cosineSimilarity(queryEmbedding, embeddedChunk.embedding);
+      const score = this.cosineSimilarity(
+        queryEmbedding,
+        embeddedChunk.embedding,
+      );
 
       if (score >= minScore) {
         results.push({
@@ -81,7 +89,9 @@ export class VectorStoreService {
     results.sort((a, b) => b.score - a.score);
     const topResults = results.slice(0, topK);
 
-    this.logger.log(`Found ${topResults.length} results (from ${results.length} candidates)`);
+    this.logger.log(
+      `Found ${topResults.length} results (from ${results.length} candidates)`,
+    );
     return topResults;
   }
 
@@ -100,7 +110,9 @@ export class VectorStoreService {
    */
   removeDocument(documentId: string): void {
     const chunkIds = this.documentChunks.get(documentId) || [];
-    this.logger.log(`Removing ${chunkIds.length} chunks for document: ${documentId}`);
+    this.logger.log(
+      `Removing ${chunkIds.length} chunks for document: ${documentId}`,
+    );
 
     for (const chunkId of chunkIds) {
       this.embeddings.delete(chunkId);
@@ -113,6 +125,11 @@ export class VectorStoreService {
    */
   getCount(): number {
     return this.embeddings.size;
+  }
+
+  /** Number of distinct documents that have at least one chunk in the store */
+  getDocumentCount(): number {
+    return this.documentChunks.size;
   }
 
   /**
@@ -151,4 +168,3 @@ export class VectorStoreService {
     return dotProduct / denominator;
   }
 }
-

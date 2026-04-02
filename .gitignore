@@ -35,6 +35,9 @@ lerna-debug.log*
 !.vscode/launch.json
 !.vscode/extensions.json
 
+# Persisted Google OAuth tokens (see GOOGLE_OAUTH_TOKEN_PATH)
+/data/google-oauth.json
+
 # dotenv environment variable files
 .env
 .env.development.local

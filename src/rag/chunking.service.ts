@@ -60,10 +60,7 @@ export class ChunkingService {
         );
 
         // Start new chunk with overlap
-        const overlap = this.getOverlap(
-          currentChunk,
-          chunkConfig.overlapSize,
-        );
+        const overlap = this.getOverlap(currentChunk, chunkConfig.overlapSize);
         currentChunk = overlap + blockText;
         chunkStartBlockIndex = startBlockIndex;
         startBlockIndex = i;
@@ -94,7 +91,8 @@ export class ChunkingService {
       // If final chunk is too small, merge with previous if possible
       if (chunks.length > 0) {
         chunks[chunks.length - 1].text += '\n\n' + currentChunk.trim();
-        chunks[chunks.length - 1].endBlockIndex = document.contentBlocks.length - 1;
+        chunks[chunks.length - 1].endBlockIndex =
+          document.contentBlocks.length - 1;
       } else {
         // If it's the only chunk, include it anyway
         chunks.push(

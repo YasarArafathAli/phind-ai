@@ -39,6 +39,8 @@ GOOGLE_CLIENT_SECRET=your-google-client-secret
 GOOGLE_REDIRECT_URI=http://localhost:3001/ingestion/auth/callback
 ```
 
+After a successful OAuth callback, access and refresh tokens are written to **`data/google-oauth.json`** (under the process working directory, gitignored). Restarting the API reloads them so users stay connected. Set **`GOOGLE_OAUTH_TOKEN_PATH`** to use a different file (for example in production with stricter permissions).
+
 ### 3. Set up Google OAuth credentials
 
 1. Go to [Google Cloud Console](https://console.cloud.google.com/)
