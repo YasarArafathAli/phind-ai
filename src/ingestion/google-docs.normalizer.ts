@@ -1,36 +1,70 @@
 import { Injectable } from '@nestjs/common';
-import { CanonicalDocument, ContentBlock } from './types';
+import { CanonicalDocument, ContentBlock, FetchedDriveDocument } from './types';
 
 /**
- * Converts raw Google Docs API response to our canonical format.
- * This is the ONLY place that understands Google Docs structure.
+ * Converts fetched Drive content (Google Doc JSON or extracted PDF text) to canonical format.
  */
 @Injectable()
 export class GoogleDocsNormalizer {
-  /**
-   * Convert a raw Google Doc to canonical format
-   */
-  normalize(rawDoc: {
-    id: string;
-    title: string;
-    body: unknown;
-    revisionId: string;
-  }): CanonicalDocument {
-    const body = rawDoc.body as { content?: unknown[] };
+  normalize(raw: FetchedDriveDocument): CanonicalDocument {
+    if (raw.kind === 'pdf') {
+      return this.normalizePdf(raw);
+    }
+    return this.normalizeGoogleDoc(raw);
+  }
+
+  private normalizeGoogleDoc(
+    raw: Extract<FetchedDriveDocument, { kind: 'gdoc' }>,
+  ): CanonicalDocument {
+    const body = raw.body as { content?: unknown[] };
     const blocks = this.extractBlocks(body.content || []);
 
     return {
-      id: `google_docs_${rawDoc.id}`,
+      id: `google_docs_${raw.id}`,
       source: 'google_docs',
-      sourceId: rawDoc.id,
-      title: rawDoc.title,
+      sourceId: raw.id,
+      title: raw.title,
       contentBlocks: blocks,
-      author: '', // Would need separate API call to get owner
+      author: '',
       createdAt: new Date(),
       updatedAt: new Date(),
-      version: rawDoc.revisionId,
+      version: raw.revisionId,
       metadata: {},
     };
+  }
+
+  /** Turn flat PDF text into paragraph blocks (headings from Docs API are not available). */
+  private normalizePdf(
+    raw: Extract<FetchedDriveDocument, { kind: 'pdf' }>,
+  ): CanonicalDocument {
+    const blocks = this.pdfTextToBlocks(raw.text);
+
+    return {
+      id: `google_docs_${raw.id}`,
+      source: 'google_docs',
+      sourceId: raw.id,
+      title: raw.title,
+      contentBlocks: blocks,
+      author: '',
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      version: raw.revisionId,
+      metadata: { mimeType: 'application/pdf' },
+    };
+  }
+
+  private pdfTextToBlocks(text: string): ContentBlock[] {
+    const normalized = text.replace(/\r\n/g, '\n').trim();
+    if (!normalized) {
+      return [];
+    }
+    const parts = normalized.split(/\n\n+/).filter((p) => p.trim().length > 0);
+    return parts.map((part, orderIndex) => ({
+      blockId: `pdf_block_${orderIndex}`,
+      type: 'paragraph' as const,
+      text: part.replace(/\n+/g, ' ').trim(),
+      orderIndex,
+    }));
   }
 
   /**

@@ -10,7 +10,11 @@ import { randomUUID } from 'crypto';
 import { ChatHistoryService } from './chat-history.service';
 import { ChatService } from './chat.service';
 import { RagChatRequestDto } from '../common/dtos/chat.dto';
-import type { ChatStreamPayload, HistoryClearPayload, RagStreamPayload } from './chat-ws.types';
+import type {
+  ChatStreamPayload,
+  HistoryClearPayload,
+  RagStreamPayload,
+} from './chat-ws.types';
 
 /**
  * Socket.IO gateway for streaming chat (plain OpenAI) and RAG.
@@ -44,7 +48,9 @@ export class ChatGateway {
     const conversationId = payload.conversationId ?? randomUUID();
     const priorFromStore = this.history.get(conversationId);
     const extra = payload.messages ?? [];
-    const prior = [...priorFromStore, ...extra].filter((m) => m.role !== 'system');
+    const prior = [...priorFromStore, ...extra].filter(
+      (m) => m.role !== 'system',
+    );
 
     const body: RagChatRequestDto = {
       message: payload.message,
@@ -62,7 +68,11 @@ export class ChatGateway {
           client.emit('rag:chunk', { conversationId, delta });
         },
         onFinish: (result) => {
-          this.history.appendExchange(conversationId, payload.message, result.message);
+          this.history.appendExchange(
+            conversationId,
+            payload.message,
+            result.message,
+          );
           client.emit('rag:done', { conversationId, ...result });
         },
       });
@@ -89,7 +99,9 @@ export class ChatGateway {
     const conversationId = payload.conversationId ?? randomUUID();
     const priorFromStore = this.history.get(conversationId);
     const extra = payload.messages ?? [];
-    const prior = [...priorFromStore, ...extra].filter((m) => m.role !== 'system');
+    const prior = [...priorFromStore, ...extra].filter(
+      (m) => m.role !== 'system',
+    );
 
     client.emit('chat:started', { conversationId });
 
@@ -97,9 +109,14 @@ export class ChatGateway {
       await this.chatService.streamPlainChat(
         { message: payload.message, messages: prior },
         {
-          onDelta: (delta) => client.emit('chat:chunk', { conversationId, delta }),
+          onDelta: (delta) =>
+            client.emit('chat:chunk', { conversationId, delta }),
           onFinish: (result) => {
-            this.history.appendExchange(conversationId, payload.message, result.message);
+            this.history.appendExchange(
+              conversationId,
+              payload.message,
+              result.message,
+            );
             client.emit('chat:done', {
               conversationId,
               message: result.message,
@@ -122,7 +139,10 @@ export class ChatGateway {
     @MessageBody() payload: HistoryClearPayload,
   ): void {
     if (!payload?.conversationId) {
-      client.emit('history:error', { code: 400, message: 'conversationId is required' });
+      client.emit('history:error', {
+        code: 400,
+        message: 'conversationId is required',
+      });
       return;
     }
     this.history.clear(payload.conversationId);

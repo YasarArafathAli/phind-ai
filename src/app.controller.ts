@@ -1,13 +1,16 @@
-import { Controller, Get, Post, Body, HttpException, HttpStatus } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Body,
+  HttpException,
+  HttpStatus,
+} from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBody } from '@nestjs/swagger';
 import { OpenAIService } from './common/openai/openai.service';
 import { ConfigService } from '@nestjs/config';
-import {
-  ChatRequestDto,
-  ChatResponseDto,
-  HealthResponseDto,
-} from './common/dtos/chat.dto';
+import { ChatRequestDto, ChatResponseDto } from './common/dtos/chat.dto';
 
+/** Plain chat only; use HealthModule for GET /health. */
 @ApiTags('API')
 @Controller()
 export class AppController {
@@ -16,24 +19,11 @@ export class AppController {
     private readonly configService: ConfigService,
   ) {}
 
-  @Get('health')
-  @ApiOperation({ summary: 'Health check endpoint' })
-  @ApiResponse({
-    status: 200,
-    description: 'API is healthy',
-    type: HealthResponseDto,
-  })
-  health(): HealthResponseDto {
-    return {
-      status: 'ok',
-      timestamp: new Date().toISOString(),
-    };
-  }
-
   @Post('chat')
   @ApiOperation({
     summary: 'Send a message to OpenAI and get a response',
-    description: 'This endpoint sends a message to OpenAI API and returns the AI response. You can optionally provide conversation history for context.',
+    description:
+      'This endpoint sends a message to OpenAI API and returns the AI response. You can optionally provide conversation history for context.',
   })
   @ApiBody({ type: ChatRequestDto })
   @ApiResponse({
@@ -57,7 +47,8 @@ export class AppController {
       }
 
       const client = this.openAIService.getClient();
-      const model = this.configService.get<string>('openai.model') || 'gpt-3.5-turbo';
+      const model =
+        this.configService.get<string>('openai.model') || 'gpt-3.5-turbo';
 
       // Build messages array
       const messages = body.messages || [];
@@ -69,14 +60,20 @@ export class AppController {
         messages: messages.map((msg) => ({
           role: msg.role,
           content: msg.content,
-        })) as Array<{ role: 'user' | 'assistant' | 'system'; content: string }>,
+        })) as Array<{
+          role: 'user' | 'assistant' | 'system';
+          content: string;
+        }>,
       });
 
       // Extract the response
       const response = completion.choices[0]?.message?.content;
 
       if (!response) {
-        throw new HttpException('No response from OpenAI', HttpStatus.INTERNAL_SERVER_ERROR);
+        throw new HttpException(
+          'No response from OpenAI',
+          HttpStatus.INTERNAL_SERVER_ERROR,
+        );
       }
 
       // Handle usage information

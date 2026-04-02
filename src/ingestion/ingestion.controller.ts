@@ -1,4 +1,18 @@
-import { Controller, Get, Post, Body, Param, Query, Res } from '@nestjs/common';
+import {
+  BadRequestException,
+  Controller,
+  Get,
+  Post,
+  Body,
+  Param,
+  Query,
+  Res,
+  NotFoundException,
+  InternalServerErrorException,
+  Logger,
+} from '@nestjs/common';
+import { ApiTags } from '@nestjs/swagger';
+import { ConfigService } from '@nestjs/config';
 import type { Response } from 'express';
 import { GoogleDocsConnector } from './google-docs.connector';
 import { IngestionService } from './ingestion.service';
@@ -12,13 +26,27 @@ interface IngestBatchDto {
 /**
  * REST API for document ingestion
  */
+@ApiTags('Ingestion')
 @Controller('ingestion')
 export class IngestionController {
+  private readonly logger = new Logger(IngestionController.name);
+
   constructor(
     private readonly connector: GoogleDocsConnector,
     private readonly ingestionService: IngestionService,
     private readonly processingService: ProcessingService,
+    private readonly configService: ConfigService,
   ) {}
+
+  /** Where the browser goes after OAuth; prefer process.env so it always matches deployment. */
+  private getFrontendBase(): string {
+    const fromEnv = process.env.FRONTEND_URL?.trim();
+    const fromConfig = this.configService.get<string>('frontendUrl')?.trim();
+    return (fromEnv || fromConfig || 'http://localhost:3000').replace(
+      /\/$/,
+      '',
+    );
+  }
 
   /**
    * Get the Google OAuth URL for authorization
@@ -30,20 +58,58 @@ export class IngestionController {
   }
 
   /**
-   * OAuth callback - exchange code for tokens
-   * GET /ingestion/auth/callback?code=xxx
+   * OAuth callback — Google redirects here with ?code=...
+   * Exchanges the code for tokens, then redirects to the Next app (FRONTEND_URL + /auth/callback).
+   * Google may also send ?error=...&error_description=... if the user cancels.
    */
   @Get('auth/callback')
-  async authCallback(@Query('code') code: string, @Res() res: Response) {
-    if (!code) {
-      return res.status(400).json({ error: 'Missing authorization code' });
-    }
+  async authCallback(
+    @Query('code') code: string | undefined,
+    @Query('error') oauthError: string | undefined,
+    @Query('error_description') errorDescription: string | undefined,
+    /** Must match the URI sent to Google on authorize (use when exchanging a code issued for the Next callback). */
+    @Query('redirect_uri') redirectUriForToken: string | undefined,
+    @Res() res: Response,
+  ) {
+    const base = this.getFrontendBase();
+    const appCallback = `${base}/auth/callback`;
 
-    const success = await this.connector.authenticate(code);
-    if (success) {
-      return res.json({ message: 'Authenticated successfully' });
-    } else {
-      return res.status(401).json({ error: 'Authentication failed' });
+    try {
+      if (oauthError) {
+        const reason = encodeURIComponent(
+          errorDescription?.trim() || oauthError,
+        );
+        this.logger.warn(`OAuth error from Google: ${oauthError}`);
+        return res.redirect(302, `${appCallback}?auth=error&reason=${reason}`);
+      }
+
+      if (!code?.trim()) {
+        return res.redirect(
+          302,
+          `${appCallback}?auth=error&reason=${encodeURIComponent('missing_code')}`,
+        );
+      }
+
+      const ok = await this.connector.authenticate(
+        code,
+        redirectUriForToken?.trim() || undefined,
+      );
+      if (ok) {
+        this.logger.log(`OAuth OK — redirect to ${appCallback}?auth=success`);
+        return res.redirect(302, `${appCallback}?auth=success`);
+      }
+      this.logger.warn('OAuth token exchange failed');
+      return res.redirect(
+        302,
+        `${appCallback}?auth=error&reason=${encodeURIComponent('token_exchange_failed')}`,
+      );
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'callback_failed';
+      this.logger.error(`OAuth callback error: ${msg}`, err);
+      return res.redirect(
+        302,
+        `${appCallback}?auth=error&reason=${encodeURIComponent(msg)}`,
+      );
     }
   }
 
@@ -73,11 +139,11 @@ export class IngestionController {
   @Post('documents/batch')
   async ingestBatch(@Body() body: IngestBatchDto) {
     if (!body.documentIds || !Array.isArray(body.documentIds)) {
-      return { error: 'documentIds array is required' };
+      throw new BadRequestException('documentIds array is required');
     }
 
     if (body.documentIds.length === 0) {
-      return { error: 'At least one document ID is required' };
+      throw new BadRequestException('At least one document ID is required');
     }
 
     return this.ingestionService.ingestBatch(body.documentIds);
@@ -121,7 +187,7 @@ export class IngestionController {
   getDocument(@Param('id') id: string) {
     const doc = this.ingestionService.getDocument(id);
     if (!doc) {
-      return { error: 'Document not found' };
+      throw new NotFoundException('Document not found');
     }
     return doc;
   }
@@ -134,7 +200,7 @@ export class IngestionController {
   async processDocument(@Param('id') id: string) {
     const doc = this.ingestionService.getDocument(id);
     if (!doc) {
-      return { error: 'Document not found' };
+      throw new NotFoundException('Document not found');
     }
 
     try {
@@ -147,9 +213,9 @@ export class IngestionController {
         success: result.success,
       };
     } catch (error) {
-      return {
-        error: error instanceof Error ? error.message : 'Failed to process document',
-      };
+      throw new InternalServerErrorException(
+        error instanceof Error ? error.message : 'Failed to process document',
+      );
     }
   }
 
@@ -177,9 +243,9 @@ export class IngestionController {
         totalChunks: result.totalChunks,
       };
     } catch (error) {
-      return {
-        error: error instanceof Error ? error.message : 'Failed to process documents',
-      };
+      throw new InternalServerErrorException(
+        error instanceof Error ? error.message : 'Failed to process documents',
+      );
     }
   }
 

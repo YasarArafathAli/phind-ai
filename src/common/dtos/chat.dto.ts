@@ -105,10 +105,16 @@ export class HealthResponseDto {
 
 /** One retrieved chunk cited in a RAG response */
 export class RagSourceDto {
-  @ApiProperty({ description: 'Chunk identifier', example: 'chunk_google_docs_abc_0' })
+  @ApiProperty({
+    description: 'Chunk identifier',
+    example: 'chunk_google_docs_abc_0',
+  })
   chunkId: string;
 
-  @ApiProperty({ description: 'Document identifier', example: 'google_docs_abc' })
+  @ApiProperty({
+    description: 'Document identifier',
+    example: 'google_docs_abc',
+  })
   documentId: string;
 
   @ApiProperty({
@@ -140,7 +146,8 @@ export class RagChatRequestDto {
   message: string;
 
   @ApiPropertyOptional({
-    description: 'Prior conversation turns (the current question is `message` only)',
+    description:
+      'Prior conversation turns (the current question is `message` only)',
     type: [ChatMessageDto],
   })
   @IsOptional()
@@ -172,7 +179,9 @@ export class RagChatRequestDto {
   minScore?: number;
 
   @ApiPropertyOptional({
-    description: 'If set, only search chunks from these document IDs',
+    description:
+      'Canonical document IDs from GET /ingestion/documents (e.g. google_docs_<fileId>). ' +
+      'Not raw Google Drive file IDs. Omit to search all indexed documents.',
     example: ['google_docs_abc123'],
     type: [String],
   })

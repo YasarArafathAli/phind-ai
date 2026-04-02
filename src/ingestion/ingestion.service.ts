@@ -42,16 +42,19 @@ export class IngestionService {
     // 4. Save to store
     this.store.save(canonical);
 
-    this.logger.log(`Ingested: ${canonical.title} (${canonical.contentBlocks.length} blocks)`);
+    this.logger.log(
+      `Ingested: ${canonical.title} (${canonical.contentBlocks.length} blocks)`,
+    );
     return canonical;
   }
 
   /**
    * Ingest multiple documents selected by user
    */
-  async ingestBatch(
-    docIds: string[],
-  ): Promise<{ success: string[]; failed: Array<{ id: string; error: string }> }> {
+  async ingestBatch(docIds: string[]): Promise<{
+    success: string[];
+    failed: Array<{ id: string; error: string }>;
+  }> {
     this.logger.log(`Ingesting ${docIds.length} selected documents...`);
 
     const success: string[] = [];
@@ -62,13 +65,16 @@ export class IngestionService {
         const doc = await this.ingestDocument(docId);
         success.push(doc.id);
       } catch (error) {
-        const message = error instanceof Error ? error.message : 'Unknown error';
+        const message =
+          error instanceof Error ? error.message : 'Unknown error';
         this.logger.error(`Failed to ingest ${docId}: ${message}`);
         failed.push({ id: docId, error: message });
       }
     }
 
-    this.logger.log(`Batch complete: ${success.length} ingested, ${failed.length} failed`);
+    this.logger.log(
+      `Batch complete: ${success.length} ingested, ${failed.length} failed`,
+    );
     return { success, failed };
   }
 

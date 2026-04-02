@@ -39,7 +39,8 @@ export class ChatService {
    * RAG: embed question, retrieve chunks, build prompt, return answer with source references.
    */
   async ragChat(body: RagChatRequestDto): Promise<RagChatResponseDto> {
-    const { searchResults, completionMessages, model } = await this.buildRagContext(body);
+    const { searchResults, completionMessages, model } =
+      await this.buildRagContext(body);
 
     const client = this.openAIService.getClient();
 
@@ -55,7 +56,10 @@ export class ChatService {
 
       const text = completion.choices[0]?.message?.content;
       if (!text) {
-        throw new HttpException('No response from OpenAI', HttpStatus.INTERNAL_SERVER_ERROR);
+        throw new HttpException(
+          'No response from OpenAI',
+          HttpStatus.INTERNAL_SERVER_ERROR,
+        );
       }
 
       const usage = this.mapUsage(completion.usage);
@@ -87,7 +91,8 @@ export class ChatService {
       onFinish: (result: RagChatResponseDto) => void;
     },
   ): Promise<void> {
-    const { searchResults, completionMessages, model } = await this.buildRagContext(body);
+    const { searchResults, completionMessages, model } =
+      await this.buildRagContext(body);
     const client = this.openAIService.getClient();
 
     this.logger.log(
@@ -103,7 +108,11 @@ export class ChatService {
       });
 
       let full = '';
-      let usage: UsageDto = { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0 };
+      let usage: UsageDto = {
+        prompt_tokens: 0,
+        completion_tokens: 0,
+        total_tokens: 0,
+      };
 
       for await (const chunk of stream) {
         const delta = chunk.choices[0]?.delta?.content ?? '';
@@ -148,7 +157,8 @@ export class ChatService {
     }
 
     const client = this.openAIService.getClient();
-    const model = this.configService.get<string>('openai.model') || 'gpt-3.5-turbo';
+    const model =
+      this.configService.get<string>('openai.model') || 'gpt-3.5-turbo';
 
     const messages = [...(body.messages || [])];
     messages.push({ role: 'user', content: body.message });
@@ -159,13 +169,20 @@ export class ChatService {
         messages: messages.map((m) => ({
           role: m.role,
           content: m.content,
-        })) as Array<{ role: 'user' | 'assistant' | 'system'; content: string }>,
+        })) as Array<{
+          role: 'user' | 'assistant' | 'system';
+          content: string;
+        }>,
         stream: true,
         stream_options: { include_usage: true },
       });
 
       let full = '';
-      let usage: UsageDto = { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0 };
+      let usage: UsageDto = {
+        prompt_tokens: 0,
+        completion_tokens: 0,
+        total_tokens: 0,
+      };
 
       for await (const chunk of stream) {
         const delta = chunk.choices[0]?.delta?.content ?? '';
@@ -219,12 +236,21 @@ export class ChatService {
       prior,
     );
 
-    const model = this.configService.get<string>('openai.model') || 'gpt-3.5-turbo';
+    const model =
+      this.configService.get<string>('openai.model') || 'gpt-3.5-turbo';
 
     return { searchResults, completionMessages, model };
   }
 
-  private mapUsage(u: { prompt_tokens: number; completion_tokens: number; total_tokens: number } | undefined): UsageDto {
+  private mapUsage(
+    u:
+      | {
+          prompt_tokens: number;
+          completion_tokens: number;
+          total_tokens: number;
+        }
+      | undefined,
+  ): UsageDto {
     if (!u) {
       return { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0 };
     }

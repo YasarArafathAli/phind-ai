@@ -52,7 +52,10 @@ export class HealthController {
    */
   @Get('ready')
   @ApiOperation({ summary: 'Readiness probe for Kubernetes' })
-  @ApiResponse({ status: 200, description: 'Service is ready to accept traffic' })
+  @ApiResponse({
+    status: 200,
+    description: 'Service is ready to accept traffic',
+  })
   @ApiResponse({ status: 503, description: 'Service is not ready' })
   readiness() {
     // Check if core services are available

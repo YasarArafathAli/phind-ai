@@ -10,13 +10,19 @@ export class ChatHistoryService {
   private readonly store = new Map<string, ChatMessageDto[]>();
 
   get(conversationId: string): ChatMessageDto[] {
-    return this.store.get(conversationId) ? [...(this.store.get(conversationId) as ChatMessageDto[])] : [];
+    return this.store.get(conversationId)
+      ? [...(this.store.get(conversationId) as ChatMessageDto[])]
+      : [];
   }
 
   /**
    * Append a user message and assistant reply after a completed exchange.
    */
-  appendExchange(conversationId: string, userText: string, assistantText: string): void {
+  appendExchange(
+    conversationId: string,
+    userText: string,
+    assistantText: string,
+  ): void {
     const row: ChatMessageDto[] = [
       { role: 'user', content: userText },
       { role: 'assistant', content: assistantText },
