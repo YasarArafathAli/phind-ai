@@ -1,3 +1,6 @@
+
+import '@nestjs/core';
+
 import { ConfigService } from '@nestjs/config';
 import { createConfiguredNestApp } from './bootstrap-app';
 

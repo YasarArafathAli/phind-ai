@@ -1,3 +1,4 @@
+import '@nestjs/core';
 import type { INestApplication } from '@nestjs/common';
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import type { Express } from 'express';
