@@ -1,4 +1,12 @@
-import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
+import {
+  BadRequestException,
+  ForbiddenException,
+  Injectable,
+  Logger,
+  NotFoundException,
+  OnModuleInit,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { GoogleOAuthStorageService } from './google-oauth.storage';
 import type { FetchedDriveDocument, GoogleCredentials } from './types';
@@ -62,7 +70,7 @@ export class GoogleDocsConnector implements OnModuleInit {
     const loaded = await this.oauthStorage.load();
     if (loaded) {
       this.credentials = loaded;
-      this.logger.log('Restored Google OAuth tokens from disk');
+      this.logger.log('Restored Google OAuth tokens from storage');
     }
   }
 
@@ -246,7 +254,7 @@ export class GoogleDocsConnector implements OnModuleInit {
       };
     }
 
-    throw new Error(
+    throw new BadRequestException(
       `Unsupported Drive file type: ${mimeType || 'unknown'}. ` +
         'Only Google Docs and PDFs are supported.',
     );
@@ -280,17 +288,19 @@ export class GoogleDocsConnector implements OnModuleInit {
         `Drive download error: ${response.status} - ${errorBody}`,
       );
       if (response.status === 401) {
-        throw new Error('Authentication expired. Please re-authenticate.');
+        throw new UnauthorizedException(
+          'Authentication expired. Please re-authenticate.',
+        );
       }
       if (response.status === 403) {
-        throw new Error(
+        throw new ForbiddenException(
           'Access denied when downloading file. Ensure Drive API is enabled and scope includes drive.readonly.',
         );
       }
       if (response.status === 404) {
-        throw new Error('File not found.');
+        throw new NotFoundException('File not found.');
       }
-      throw new Error(`Drive download error: ${response.status}`);
+      throw new BadRequestException(`Drive download error: ${response.status}`);
     }
 
     const ab = await response.arrayBuffer();
@@ -299,9 +309,29 @@ export class GoogleDocsConnector implements OnModuleInit {
 
   // --- Private helpers ---
 
+  /**
+   * Reloads tokens from Redis/file when memory is empty (e.g. OAuth completed on another Vercel instance).
+   * Use before `isAuthenticated()` for accurate `/ingestion/auth/status`.
+   */
+  async hydrateCredentialsFromStorageIfNeeded(): Promise<void> {
+    await this.reloadCredentialsFromStorageIfEmpty();
+  }
+
+  /** Picks up tokens saved on another serverless instance (e.g. after OAuth on a different isolate). */
+  private async reloadCredentialsFromStorageIfEmpty(): Promise<void> {
+    if (this.credentials?.accessToken) {
+      return;
+    }
+    const loaded = await this.oauthStorage.load();
+    if (loaded) {
+      this.credentials = loaded;
+    }
+  }
+
   private async ensureAuth(): Promise<void> {
+    await this.reloadCredentialsFromStorageIfEmpty();
     if (!this.credentials?.accessToken) {
-      throw new Error('Not authenticated');
+      throw new UnauthorizedException('Not authenticated');
     }
 
     // Refresh token if expired
@@ -312,7 +342,9 @@ export class GoogleDocsConnector implements OnModuleInit {
 
   private async refreshToken(): Promise<void> {
     if (!this.credentials?.refreshToken) {
-      throw new Error('No refresh token - need to re-authenticate');
+      throw new UnauthorizedException(
+        'No refresh token - need to re-authenticate',
+      );
     }
 
     const { clientId, clientSecret } = this.getGoogleOAuthConfig();
@@ -329,7 +361,7 @@ export class GoogleDocsConnector implements OnModuleInit {
     });
 
     if (!response.ok) {
-      throw new Error('Failed to refresh token');
+      throw new UnauthorizedException('Failed to refresh token');
     }
 
     const data = (await response.json()) as Pick<
@@ -369,19 +401,21 @@ export class GoogleDocsConnector implements OnModuleInit {
 
       // Provide helpful error messages
       if (response.status === 401) {
-        throw new Error('Authentication expired. Please re-authenticate.');
+        throw new UnauthorizedException(
+          'Authentication expired. Please re-authenticate.',
+        );
       }
       if (response.status === 403) {
-        throw new Error(
+        throw new ForbiddenException(
           'Access denied. Make sure Google Docs API and Google Drive API ' +
             'are enabled in Google Cloud Console, and you granted the required permissions.',
         );
       }
       if (response.status === 404) {
-        throw new Error('Document not found.');
+        throw new NotFoundException('Document not found.');
       }
 
-      throw new Error(`Google API error: ${response.status}`);
+      throw new BadRequestException(`Google API error: ${response.status}`);
     }
 
     return response;

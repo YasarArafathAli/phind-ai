@@ -118,7 +118,8 @@ export class IngestionController {
    * GET /ingestion/auth/status
    */
   @Get('auth/status')
-  getAuthStatus() {
+  async getAuthStatus() {
+    await this.connector.hydrateCredentialsFromStorageIfNeeded();
     return { authenticated: this.connector.isAuthenticated() };
   }
 

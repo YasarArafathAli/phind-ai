@@ -16,5 +16,13 @@ export default () => ({
     oauthTokenPath:
       process.env.GOOGLE_OAUTH_TOKEN_PATH ||
       (process.env.VERCEL === '1' ? '/tmp/google-oauth.json' : undefined),
+    /**
+     * When both are set, tokens are stored in Upstash Redis (shared across Vercel instances).
+     * Without this on serverless, `/tmp` is per-instance and Drive calls fail with "Not authenticated".
+     */
+    upstashRedisRestUrl: process.env.UPSTASH_REDIS_REST_URL,
+    upstashRedisRestToken: process.env.UPSTASH_REDIS_REST_TOKEN,
+    /** Redis key for the JSON token blob (single-user default). */
+    oauthRedisKey: process.env.GOOGLE_OAUTH_REDIS_KEY || 'google-oauth:tokens',
   },
 });

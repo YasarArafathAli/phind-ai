@@ -1,5 +1,6 @@
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { Redis } from '@upstash/redis';
 import * as fs from 'fs/promises';
 import * as path from 'path';
 import type { GoogleCredentials } from './types';
@@ -12,15 +13,30 @@ interface PersistedGoogleOAuthFile {
 }
 
 /**
- * Persists Google OAuth tokens to disk so a server restart stays signed in.
- * For production, replace with a secrets store or encrypted DB per user.
+ * Persists Google OAuth tokens: file (local) or Upstash Redis when REST URL + token are set.
+ * Redis is required for multi-instance serverless (e.g. Vercel); each instance has its own /tmp.
  */
 @Injectable()
 export class GoogleOAuthStorageService implements OnModuleInit {
   private readonly logger = new Logger(GoogleOAuthStorageService.name);
   private readonly filePath: string;
+  private readonly redis: Redis | null;
+  private readonly redisKey: string;
 
   constructor(private readonly config: ConfigService) {
+    const url =
+      this.config.get<string>('google.upstashRedisRestUrl')?.trim() ??
+      process.env.UPSTASH_REDIS_REST_URL?.trim();
+    const token =
+      this.config.get<string>('google.upstashRedisRestToken')?.trim() ??
+      process.env.UPSTASH_REDIS_REST_TOKEN?.trim();
+    this.redis =
+      url && token ? new Redis({ url, token }) : null;
+    this.redisKey =
+      this.config.get<string>('google.oauthRedisKey')?.trim() ||
+      process.env.GOOGLE_OAUTH_REDIS_KEY?.trim() ||
+      'google-oauth:tokens';
+
     const fromEnv = process.env.GOOGLE_OAUTH_TOKEN_PATH?.trim();
     const fromConfig = this.config.get<string>('google.oauthTokenPath')?.trim();
     const explicit = fromEnv || fromConfig;
@@ -30,6 +46,18 @@ export class GoogleOAuthStorageService implements OnModuleInit {
   }
 
   async onModuleInit(): Promise<void> {
+    if (this.redis) {
+      this.logger.log(
+        `Google OAuth tokens: Upstash Redis key "${this.redisKey}"`,
+      );
+      return;
+    }
+    if (process.env.VERCEL === '1') {
+      this.logger.warn(
+        'VERCEL without UPSTASH_REDIS_REST_URL + UPSTASH_REDIS_REST_TOKEN: OAuth tokens live in per-instance /tmp. ' +
+          'Use Upstash (free tier) so all function instances share tokens.',
+      );
+    }
     await this.ensureParentDir();
   }
 
@@ -37,12 +65,33 @@ export class GoogleOAuthStorageService implements OnModuleInit {
     await fs.mkdir(path.dirname(this.filePath), { recursive: true });
   }
 
-  /** Resolved path (for logs / docs). */
+  /** Where tokens are stored (file path or redis key label). */
   getTokenFilePath(): string {
-    return this.filePath;
+    return this.redis ? `redis:${this.redisKey}` : this.filePath;
   }
 
   async load(): Promise<GoogleCredentials | null> {
+    if (this.redis) {
+      try {
+        const raw = await this.redis.get<string>(this.redisKey);
+        if (raw == null || raw === '') {
+          return null;
+        }
+        const parsed = JSON.parse(raw) as PersistedGoogleOAuthFile;
+        if (!parsed?.accessToken) {
+          return null;
+        }
+        return {
+          accessToken: parsed.accessToken,
+          refreshToken: parsed.refreshToken,
+          expiresAt: parsed.expiresAt ? new Date(parsed.expiresAt) : undefined,
+        };
+      } catch (e) {
+        this.logger.warn(`Could not read OAuth from Redis: ${String(e)}`);
+        return null;
+      }
+    }
+
     try {
       const raw = await fs.readFile(this.filePath, 'utf8');
       let parsed: PersistedGoogleOAuthFile;
@@ -71,22 +120,30 @@ export class GoogleOAuthStorageService implements OnModuleInit {
   }
 
   async save(creds: GoogleCredentials): Promise<void> {
-    await this.ensureParentDir();
     const payload: PersistedGoogleOAuthFile = {
       accessToken: creds.accessToken,
       refreshToken: creds.refreshToken,
       expiresAt: (creds.expiresAt ?? new Date()).toISOString(),
     };
-    await fs.writeFile(
-      this.filePath,
-      `${JSON.stringify(payload, null, 2)}\n`,
-      'utf8',
-    );
-    this.logger.log(`Saved Google OAuth tokens`);
+    const json = JSON.stringify(payload);
+
+    if (this.redis) {
+      await this.redis.set(this.redisKey, json);
+      this.logger.log('Saved Google OAuth tokens to Redis');
+      return;
+    }
+
+    await this.ensureParentDir();
+    await fs.writeFile(this.filePath, `${json}\n`, 'utf8');
+    this.logger.log('Saved Google OAuth tokens');
   }
 
-  /** Remove persisted tokens (disconnect / switch account). */
   async clear(): Promise<void> {
+    if (this.redis) {
+      await this.redis.del(this.redisKey);
+      this.logger.log('Removed Google OAuth tokens from Redis');
+      return;
+    }
     try {
       await fs.unlink(this.filePath);
       this.logger.log('Removed Google OAuth token file');
