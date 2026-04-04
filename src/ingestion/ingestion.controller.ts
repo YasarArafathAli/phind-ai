@@ -223,7 +223,7 @@ export class IngestionController {
         embeddingsGenerated: result.embeddedChunks.length,
         success: result.success,
       };
-    } catch (error) {
+    } catch (error: unknown) {
       throw new InternalServerErrorException(
         error instanceof Error ? error.message : 'Failed to process document',
       );
@@ -253,7 +253,7 @@ export class IngestionController {
         processed: result.processed,
         totalChunks: result.totalChunks,
       };
-    } catch (error) {
+    } catch (error: unknown) {
       throw new InternalServerErrorException(
         error instanceof Error ? error.message : 'Failed to process documents',
       );

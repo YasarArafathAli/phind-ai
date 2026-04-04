@@ -30,8 +30,7 @@ export class GoogleOAuthStorageService implements OnModuleInit {
     const token =
       this.config.get<string>('google.upstashRedisRestToken')?.trim() ??
       process.env.UPSTASH_REDIS_REST_TOKEN?.trim();
-    this.redis =
-      url && token ? new Redis({ url, token }) : null;
+    this.redis = url && token ? new Redis({ url, token }) : null;
     this.redisKey =
       this.config.get<string>('google.oauthRedisKey')?.trim() ||
       process.env.GOOGLE_OAUTH_REDIS_KEY?.trim() ||

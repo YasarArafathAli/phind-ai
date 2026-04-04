@@ -94,15 +94,16 @@ export class AppController {
         message: response,
         usage,
       };
-    } catch (error) {
-      // Handle OpenAI API errors
+    } catch (error: unknown) {
       if (error instanceof HttpException) {
         throw error;
       }
-
-      // Handle other errors
+      const message =
+        error instanceof Error
+          ? error.message
+          : 'Failed to get response from OpenAI';
       throw new HttpException(
-        error.message || 'Failed to get response from OpenAI',
+        message || 'Failed to get response from OpenAI',
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }

@@ -2,7 +2,6 @@ import { HttpException, HttpStatus, Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { OpenAIService } from '../common/openai/openai.service';
 import {
-  ChatMessageDto,
   ChatRequestDto,
   RagChatRequestDto,
   RagChatResponseDto,
