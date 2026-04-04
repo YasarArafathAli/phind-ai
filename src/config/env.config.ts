@@ -12,7 +12,9 @@ export default () => ({
     clientId: process.env.GOOGLE_CLIENT_ID,
     clientSecret: process.env.GOOGLE_CLIENT_SECRET,
     redirectUri: process.env.GOOGLE_REDIRECT_URI,
-    /** Optional absolute path for persisted tokens (default: `data/google-oauth.json` under cwd). */
-    oauthTokenPath: process.env.GOOGLE_OAUTH_TOKEN_PATH,
+    /** Optional absolute path for persisted tokens (default: `data/google-oauth.json` under cwd; on Vercel use `/tmp/...`). */
+    oauthTokenPath:
+      process.env.GOOGLE_OAUTH_TOKEN_PATH ||
+      (process.env.VERCEL === '1' ? '/tmp/google-oauth.json' : undefined),
   },
 });
